@@ -90,5 +90,25 @@ module Sprockets
     def gzip=(gzip)
       self.config = config.merge(gzip_enabled: gzip).freeze
     end
+
+    # Public: Checks if Brotli is enabled.
+    def brotli?
+      config[:brotli_enabled]
+    end
+
+    # Public: Checks if Brotli is disabled.
+    def skip_brotli?
+      !brotli?
+    end
+
+    # Public: Enable or disable the creation of Brotli files.
+    #
+    # Defaults to true.
+    #
+    #     environment.brotli = false
+    #
+    def brotli=(brotli)
+      self.config = config.merge(brotli_enabled: brotli).freeze
+    end
   end
 end

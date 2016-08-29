@@ -211,17 +211,32 @@ module Sprockets
         end
         filenames << asset.filename
 
-        next if environment.skip_gzip?
-        gzip = Utils::Gzip.new(asset)
-        next if gzip.cannot_compress?(environment.mime_types)
+        next if environment.skip_gzip? and environment.skip_brotli?
 
-        if File.exist?("#{target}.gz")
-          logger.debug "Skipping #{target}.gz, already exists"
-        else
-          logger.info "Writing #{target}.gz"
-          concurrent_compressors << Concurrent::Future.execute do
-            write_file.wait! if write_file
-            gzip.compress(target)
+        unless environment.skip_gzip?
+          gzip = Utils::Gzip.new(asset)
+          unless gzip.cannot_compress?(environment.mime_types)
+            if File.exist?("#{target}.gz")
+              logger.debug "Skipping #{target}.gz, already exists"
+            else
+              logger.info "Writing #{target}.gz"
+              concurrent_compressors << Concurrent::Future.execute do
+                write_file.wait! if write_file
+                gzip.compress(target)
+              end
+            end
+          end
+        end
+
+        unless environment.skip_brotli?
+          if File.exist?("#{target}.br")
+            logger.debug "Skipping #{target}.br, already exists"
+          else
+            logger.info "Writing #{target}.br"
+            concurrent_compressors << Concurrent::Future.execute do
+              write_file.wait! if write_file
+              `bro --quality 9 --input #{target} --output #{target}.br`
+            end
           end
         end
 
